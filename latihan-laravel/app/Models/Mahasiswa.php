@@ -2,10 +2,12 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class Mahasiswa extends Model
 {
-    use hasFactory;
+    use HasFactory;
     protected $table = 'mahasiswas';
     protected $fillable = [
         'program_studi_id',
@@ -27,5 +29,12 @@ class Mahasiswa extends Model
     public function programStudi(): BelongsTo
     {
         return $this->belongsTo(ProgramStudi::class);
+    }
+
+    public function mataKuliah(): BelongsToMany
+    {
+        return $this->belongsToMany(MataKuliah::class, 'mahasiswa_matakuliah')
+                    ->withPivot('nilai')
+                    ->withTimestamps();
     }
 }

@@ -5,6 +5,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MatakuliahController;
 use App\Http\Controllers\MahasiswaWebController;
 
+Route::get('/mahasiswa/top-tk', [MahasiswaWebController::class, 'topTeknikKomputer'])->name('mahasiswa.top_tk');
+Route::get('/mahasiswa-data', [MahasiswaWebController::class,
+'index'])->name('mahasiswa.data');
+
+Route::get('/mahasiswa/{id}', [MahasiswaWebController::class, 'show'])->name('mahasiswa.show');
+
 Route::get('/', function () {
     return view('welcome', [
         "nama" => "Refan Nur C",
@@ -45,5 +51,3 @@ Route::get('/data-matakuliah', [MatakuliahController::class, 'index'])
 Route::get('/data-matakuliah/{kode}', [MatakuliahController::class, 'show'])
     ->name('matakuliah.show');
 
-Route::get('/mahasiswa-data', [MahasiswaWebController::class,
-'index'])->name('mahasiswa.data');
