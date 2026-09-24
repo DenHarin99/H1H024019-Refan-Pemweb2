@@ -41,7 +41,8 @@ class MahasiswaController extends Controller
         if (in_array($urutan, $kolomDiizinkan, true)) {
             $kueri->orderBy($urutan, $arah === 'desc' ? 'desc' : 'asc');
         }
-
+        
+        
         $perHalaman = min($request->integer('per_halaman', 10), 100);
 
         return MahasiswaResource::collection($kueri->paginate($perHalaman));

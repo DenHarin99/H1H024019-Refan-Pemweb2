@@ -9,7 +9,9 @@ class MahasiswaResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $fields = $request->query('fields');
+
+        $data = [
             'id' => $this->id,
             'nim' => $this->nim,
             'nama' => $this->nama,
@@ -17,6 +19,7 @@ class MahasiswaResource extends JsonResource
             'angkatan' => $this->angkatan,
             'ipk' => (float) $this->ipk,
             'aktif' => $this->aktif,
+
             'program_studi' => $this->whenLoaded('programStudi', function () {
                 return [
                     'id' => $this->programStudi->id,
@@ -24,7 +27,19 @@ class MahasiswaResource extends JsonResource
                     'nama' => $this->programStudi->nama,
                 ];
             }),
-            'dibuat_pada' => $this->created_at->toIso8601String(),
+
+            'dibuat_pada' => $this->created_at?->toIso8601String(),
         ];
+
+        if (!$fields) {
+            return $data;
+        }
+
+        $fields = explode(',', $fields);
+
+        return array_intersect_key(
+            $data,
+            array_flip($fields)
+        );
     }
 }
