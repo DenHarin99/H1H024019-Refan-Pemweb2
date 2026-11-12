@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
+	
 )
 
 // GET: Menampilkan semua mata kuliah
