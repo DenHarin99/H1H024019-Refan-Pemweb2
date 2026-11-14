@@ -1,13 +1,17 @@
 package middleware
 
 import (
+    "errors"
     "strconv"
     "strings"
+    "time"
 
     "github.com/gofiber/fiber/v3"
+    "gorm.io/gorm"
 
     "latihan-fiber-api/internal/auth"
     "latihan-fiber-api/internal/config"
+    "latihan-fiber-api/internal/model"
 )
 
 func Autentikasi() fiber.Handler {
@@ -31,15 +35,47 @@ func Autentikasi() fiber.Handler {
             return fiber.NewError(fiber.StatusUnauthorized, "Token tidak valid atau sudah kedaluwarsa")
         }
 
+		// Memeriksa apakah token sudah masuk blacklist
+var jumlah int64
+
+	err = config.DB.Model(&model.TokenBlacklist{}).
+		Where(
+			"token_hash = ? AND expires_at > ?",
+			auth.HashToken(bagian[1]),
+			time.Now(),
+		).
+		Count(&jumlah).Error
+
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(
+				fiber.StatusInternalServerError,
+				"Gagal memeriksa status token",
+			)
+		}
+	}
+
+	if jumlah > 0 {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"Token sudah dicabut",
+		)
+	}
         id, err := strconv.ParseUint(klaim.Subject, 10, 64)
         if err != nil {
             return fiber.NewError(fiber.StatusUnauthorized, "Isi token tidak sesuai")
         }
 
-        c.Locals("id_pengguna", uint(id))
-        c.Locals("peran", klaim.Peran)
+        
+	c.Locals("id_pengguna", uint(id))
+	c.Locals("peran", klaim.Peran)
 
-        return c.Next()
+	// Simpan token dan waktu kedaluwarsa untuk proses logout
+	c.Locals("token", bagian[1])
+	c.Locals("token_exp", klaim.ExpiresAt.Time)
+
+	return c.Next()
+
     }
 }
 

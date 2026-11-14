@@ -8,6 +8,7 @@ import (
     "latihan-fiber-api/internal/config"
     "latihan-fiber-api/internal/model"
     "latihan-fiber-api/internal/validasi"
+	"time"
 )
 
 func Registrasi(c fiber.Ctx) error {
@@ -111,5 +112,95 @@ func Profil(c fiber.Ctx) error {
     return c.JSON(fiber.Map{
         "sukses": true,
         "data":   pengguna,
+    })
+}
+
+
+func Segarkan(c fiber.Ctx) error {
+    // Mengambil ID pengguna dari hasil pemeriksaan middleware
+    idPengguna, cocok := c.Locals("id_pengguna").(uint)
+    if !cocok {
+        return fiber.NewError(
+            fiber.StatusUnauthorized,
+            "Identitas pengguna tidak valid",
+        )
+    }
+
+    // Mengambil peran pengguna dari hasil pemeriksaan middleware
+    peran, cocok := c.Locals("peran").(string)
+    if !cocok {
+        return fiber.NewError(
+            fiber.StatusUnauthorized,
+            "Peran pengguna tidak valid",
+        )
+    }
+
+    // Membaca konfigurasi JWT
+    konf := config.Muat()
+
+    // Menerbitkan token baru
+    token, err := auth.TerbitkanToken(
+        idPengguna,
+        peran,
+        konf.JwtSecret,
+        konf.JwtTtlMenit,
+    )
+    if err != nil {
+        return fiber.NewError(
+            fiber.StatusInternalServerError,
+            "Gagal menerbitkan token baru",
+        )
+    }
+
+    return c.JSON(fiber.Map{
+        "sukses": true,
+        "pesan":  "Token berhasil diperbarui",
+        "data": fiber.Map{
+            "token": token,
+            "tipe":  "Bearer",
+        },
+    })
+}
+
+
+func Logout(c fiber.Ctx) error {
+    // Mengambil token dari middleware
+    token, cocok := c.Locals("token").(string)
+    if !cocok || token == "" {
+        return fiber.NewError(
+            fiber.StatusUnauthorized,
+            "Token tidak ditemukan",
+        )
+    }
+
+    // Mengambil waktu kedaluwarsa token
+    expiresAt, cocok := c.Locals("token_exp").(time.Time)
+    if !cocok {
+        return fiber.NewError(
+            fiber.StatusUnauthorized,
+            "Waktu kedaluwarsa token tidak ditemukan",
+        )
+    }
+
+    // Menghitung hash token
+    hash := auth.HashToken(token)
+
+    // Menyimpan token ke blacklist
+    daftar := model.TokenBlacklist{
+        TokenHash: hash,
+        ExpiresAt: expiresAt,
+    }
+
+    err := config.DB.Create(&daftar).Error
+    if err != nil {
+        return fiber.NewError(
+            fiber.StatusInternalServerError,
+            "Gagal melakukan logout",
+        )
+    }
+
+    return c.JSON(fiber.Map{
+        "sukses": true,
+        "pesan":  "Logout berhasil",
     })
 }
